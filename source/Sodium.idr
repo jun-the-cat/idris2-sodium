@@ -1,7 +1,6 @@
 module Sodium
 
 import Sodium.Primitives
-import Sodium.Shim
 
 import Sodium.Memory
 

@@ -4,6 +4,9 @@ SOURCE=shim.c
 OBJECT=shim.o
 HEADER=shim.h
 
+CFLAGS=-Wall -Wextra -Werror
+LIBS  =-lsodium
+
 SO=../lib/libshim.so
 
 .MAIN: $(SO)
@@ -12,7 +15,7 @@ SO=../lib/libshim.so
 $(SO): $(OBJECT)
 	@echo "CC\tlib/libshim.so"
 	@mkdir -p ../lib
-	@$(CC) -shared -o $@ $< $(IDRIS_INCLUDES) $(IDRIS_LDFLAGS)
+	@$(CC) -shared -o $@ $< $(LIBS) $(CFLAGS)
 
 $(OBJECT): $(SOURCE) $(HEADER)
 	@echo "CC\tshim.o\tshim.c shim.h"

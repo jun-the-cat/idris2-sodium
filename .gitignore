@@ -1,3 +1,7 @@
+# Emacs Files
+.#*
+\#*
+
 # Build Files
 build/
 sodium-0.0.0/
