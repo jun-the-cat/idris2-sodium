@@ -3,7 +3,6 @@ module Sodium
 import Sodium.Primitives
 
 import Sodium.Memory
-import Sodium.SecureBuffer
 
 -- Initialization Routines --
 

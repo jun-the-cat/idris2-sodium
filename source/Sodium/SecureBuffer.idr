@@ -10,7 +10,7 @@ import Sodium.Random
 %default total
 
 ||| A secure, runtime managed memory buffer. By default, the memory region
-||| this record represents is marked as ReadOnly.
+||| this record represents is marked as Read/Write.
 public export
 record SecureBuffer where
   constructor MkSecureBuffer
@@ -26,7 +26,6 @@ newSecureBuffer : HasIO io => Bits64 -> io SecureBuffer
 newSecureBuffer size = do
   ptr <- allocateTrackedMemory size
   _   <- lockMemory (cast ptr) size
-  _   <- readOnlyMemory (cast ptr)
   liftIO $ pure $ MkSecureBuffer ptr size
 
 ||| Peeks into the secure buffer, returning the byte at the given index.
