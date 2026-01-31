@@ -58,7 +58,7 @@ shim_peek(char * const pointer, size_t index, size_t size)
  * Poke a new value into the given pointer, returning the old value.
  */
 uint8_t
-shim_poke(char * const pointer, size_t index, uint8_t value, size_t size)
+shim_poke(char * pointer, size_t index, uint8_t value, size_t size)
 {
   uint8_t old;
   if (index >= size) return 0;
