@@ -7,29 +7,35 @@ BLDDIR=build/
 
 SOURCES!=find source/ -type f -name "*.idr"
 
+SHIM=lib/libshim.so
+
 NAME      =sodium
 VERSION   =0.0.0
-COMPRESSED=$(NAME).tar.bz
+COMPRESSED=$(NAME)-$(VERSION).tar.bz
 
 DISTDIR=$(NAME)-$(VERSION)/
 
 .MAIN:  $(EXECUTABLE)
-.PHONY: dist run clean
+.PHONY: dist run clean $(SHIM)
 
-$(BLDDIR): $(SOURCES) $(PACKAGE)
+$(BLDDIR): $(SOURCES) $(PACKAGE) $(SHIM)
 	@echo "BUILDING LIBRARY"
 	@$(IDRC) --build $(PACKAGE)
 
-dist: $(EXECUTABLE)
-	@echo "DIST\t$(EXECUTABLE)"
-	@mkdir $(DISTDIR)
-	@cp -r build/* $(DISTDIR)
+$(SHIM):
+	@echo "BUILDING SHIM"
+	@make -sC shim/
+
+dist: $(BLDDIR)
+	@echo "DIST\t$(COMPRESSED)"
+	@mkdir $(DISTDIR)  $(DISTDIR)lib
+	@cp -r build/ttc/* $(DISTDIR)
+	@cp -r source/*    $(DISTDIR)
+	@cp $(SHIM)        $(DISTDIR)lib
+	@cp sodium.ipkg    $(DISTDIR)
 	@tar cvf $(COMPRESSED) $(DISTDIR)*
 
-run: $(EXECUTABLE)
-	@echo "RUN\t$(EXECUTABLE)"
-	@exec $(EXECUTABLE)
-
 clean:
+	@make -sC shim/ clean
 	@echo "RM\t$(BLDDIR) $(DISTDIR) $(COMPRESSED)"
 	@rm -rf $(BLDDIR) $(DISTDIR) $(COMPRESSED)

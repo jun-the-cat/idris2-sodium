@@ -1,7 +1,14 @@
-package armitage
+package sodium
 
-sourcedir  = "source"
-modules    = Sodium
-depends    = contrib
-brief      = "LibSodium Bindings for Idris 2"
-opts       = "--wp"
+-- Package Information
+brief       = "LibSodium Bindings for Idris 2"
+authors     = "Oswin Sorenson"
+maintainers = "Oswin Sorenson"
+license     = "MIT"
+version     = 0.0.0
+
+-- Build Information
+sourcedir   = "source"
+modules     = Sodium
+depends     = contrib
+opts        = "--wp"

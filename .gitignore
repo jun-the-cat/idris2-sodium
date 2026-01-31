@@ -1,6 +1,8 @@
 # Build Files
 build/
 sodium-0.0.0/
+lib/
+*.tar.bz
 
 # Idris 2
 *.ttc
