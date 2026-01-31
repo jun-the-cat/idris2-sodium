@@ -92,4 +92,12 @@ readWriteMemory = setMemoryProtection ReadWrite
 
 -- Memory Padding and Unpadding Routines --
 
--- TODO: Need C shims to get the new sizes, given the pointer passing.
+||| Pad the given memory region up to the given block size.
+export
+padMemory : HasIO io => AnyPtr -> Bits64 -> Bits64 -> Bits64 -> io Bits64
+padMemory ptr len bs max = primIO $ prim__padBuffer ptr len bs max
+
+||| Unpads the given memory region back to its original size.
+export
+unpadMemory : HasIO io => AnyPtr -> Bits64 -> Bits64 -> io Bits64
+unpadMemory ptr len bs = primIO $ prim__unpadBuffer ptr len bs

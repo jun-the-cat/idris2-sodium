@@ -93,3 +93,42 @@ prim__deterministicBuffer : AnyPtr -> Bits64 -> AnyPtr -> PrimIO ()
 export
 prim__randomSeedSize : Bits32
 prim__randomSeedSize = 32
+
+-- Shim Bindings
+
+libshim : String -> String
+libshim fn = "C:" ++ fn ++ ",libshim,shim.h"
+
+%foreign (libshim "shim_pad")
+export
+prim__padBuffer : AnyPtr -> Bits64 -> Bits64 -> Bits64 -> PrimIO Bits64
+
+%foreign (libshim "shim_unpad")
+export
+prim__unpadBuffer : AnyPtr -> Bits64 -> Bits64 -> PrimIO Bits64
+
+%foreign (libshim "shim_unwrap_gc")
+export
+prim__unwrapAnyPtr : GCAnyPtr -> AnyPtr
+
+%foreign (libshim "shim_unwrap_gc")
+export
+prim__unwrapPtr : GCPtr t -> Ptr t
+
+%foreign (libshim "shim_peek")
+export
+prim__peek : AnyPtr -> Bits64 -> Bits64 -> Bits8
+
+%foreign (libshim "shim_poke")
+export
+prim__poke : AnyPtr -> Bits64 -> Bits8 -> Bits64 -> PrimIO Bits8
+
+-- Pointer conversion.
+
+public export
+Cast GCAnyPtr AnyPtr where
+  cast f = prim__unwrapAnyPtr f
+
+public export
+Cast (GCPtr t) (Ptr t) where
+  cast f = prim__unwrapPtr f
