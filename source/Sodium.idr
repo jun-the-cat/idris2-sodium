@@ -3,6 +3,7 @@ module Sodium
 import Sodium.Primitives
 
 import Sodium.Memory
+import Sodium.SecureBuffer
 
 -- Initialization Routines --
 
@@ -15,3 +16,9 @@ initSodium = do
   pure $ case outcome of
     -1 => False
     _  => True
+
+test : IO ()
+test = do
+  _   <- initSodium
+  buf <- newSecureBuffer 8
+  putStrLn $ show buf

@@ -36,7 +36,7 @@ shim_unpad(unsigned char *buf,
 }
 
 /**
- * Used to unwrap GCAnyPtr and GcPtr t in Idris, as there seems to be no way otherwise.
+ * Used to unwrap GCAnyPtr and GCPtr t in Idris, as there seems to be no way otherwise.
  */
 void *
 shim_unwrap_gc(void * const pointer)

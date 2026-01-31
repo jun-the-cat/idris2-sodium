@@ -1,14 +1,16 @@
 module Sodium.SecureBuffer
 
-import Sodium.Primitives
+import Data.String
+import Data.Bits
 
+import Sodium.Primitives
 import Sodium.Memory
 import Sodium.Random
 
-||| A secure, runtime managed memory buffer. By default the memory region
-||| this record represents is marked as NoAccess, and the appropriate
-||| permissions must be enabled and disabled as it is used. If this is
-||| not done, behavior is undefined.
+%default total
+
+||| A secure, runtime managed memory buffer. By default, the memory region
+||| this record represents is marked as ReadOnly.
 public export
 record SecureBuffer where
   constructor MkSecureBuffer
@@ -24,7 +26,7 @@ newSecureBuffer : HasIO io => Bits64 -> io SecureBuffer
 newSecureBuffer size = do
   ptr <- allocateTrackedMemory size
   _   <- lockMemory (cast ptr) size
-  _   <- noAccessMemory (cast ptr)
+  _   <- readOnlyMemory (cast ptr)
   liftIO $ pure $ MkSecureBuffer ptr size
 
 ||| Peeks into the secure buffer, returning the byte at the given index.
@@ -99,3 +101,35 @@ unpadBuffer : HasIO io => SecureBuffer -> Bits64 -> Bits64 -> io Bits64
 unpadBuffer (MkSecureBuffer ptr _) len blockSize = 
   let rawPtr = cast ptr
   in unpadMemory rawPtr len blockSize
+
+-- Higher Order Abstractions --
+-------------------------------
+
+private
+hexLookup : String
+hexLookup = "0123456789ABCDEF"
+
+private
+byteToHex : Bits8 -> String
+byteToHex byte = let hi     = shiftR byte 4
+                     lo     = byte .&. 0x0F
+                     hiChar = strSubstr (cast hi) 1 hexLookup
+                     loChar = strSubstr (cast lo) 1 hexLookup
+                 in hiChar ++ loChar
+
+private
+bufferToString : (sb : SecureBuffer) -> Bits64 -> List String -> String
+bufferToString buffer 0 lst =
+  let val = peek buffer 0
+  in concat $ (byteToHex val :: lst)
+bufferToString buffer i lst = 
+  let val = peek buffer i
+  in bufferToString buffer
+                    (assert_smaller i $ i - 1) 
+                    (byteToHex val :: lst)
+
+export
+Show SecureBuffer where
+  show buffer = let size  = length buffer
+                    value = bufferToString buffer (size - 1) []
+                in "SecureBuffer[" ++ value ++ "] (Length: " ++ show size ++ ")"
