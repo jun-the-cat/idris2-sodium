@@ -1,2 +1,2 @@
-# idris2-ssl
-Low and high level bindings of the "libssl" library for Idris2.
+# idris2-sodium
+Low and high level bindings of the "libsodium" library for Idris2.
