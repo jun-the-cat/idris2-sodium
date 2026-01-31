@@ -1,0 +1,7 @@
+package armitage
+
+sourcedir  = "source"
+modules    = Sodium
+depends    = contrib
+brief      = "LibSodium Bindings for Idris 2"
+opts       = "--wp"
