@@ -16,12 +16,3 @@ initSodium = do
   pure $ case outcome of
     -1 => False
     _  => True
-
-test : IO ()
-test = do
-  _   <- initSodium
-  str <- hashPassword Interactive Interactive "Hello, world!"
-  putStrLn $ show str
-  case str of
-    Just hash => putStrLn $ show $ verifyPassword hash "Hello, world!"
-    Nothing   => putStrLn "Cannot validate."
