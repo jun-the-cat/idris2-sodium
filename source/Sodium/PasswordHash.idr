@@ -9,7 +9,13 @@ import Sodium.Memory
 -- Password Hashing Data Types --
 
 public export
-data HashLimit     = Minimum | Interactive | Moderate | Sensitive | Maximum
+data HashLimit
+  = Minimum
+  | Interactive
+  | Moderate
+  | Sensitive
+  | Maximum
+  | Immediate Bits64
 
 public export
 data HashAlgorithm = Argon2I13 | Argon2ID13 | Default
@@ -27,18 +33,20 @@ saltLength : Bits64
 saltLength = prim__crypto_pwhash_saltbytes
 
 getOpLimit : HashLimit -> Bits64
-getOpLimit Minimum     = prim__crypto_pwhash_opslimit_min
-getOpLimit Interactive = prim__crypto_pwhash_opslimit_interactive
-getOpLimit Moderate    = prim__crypto_pwhash_opslimit_moderate
-getOpLimit Sensitive   = prim__crypto_pwhash_opslimit_sensitive
-getOpLimit Maximum     = prim__crypto_pwhash_opslimit_max
+getOpLimit Minimum       = prim__crypto_pwhash_opslimit_min
+getOpLimit Interactive   = prim__crypto_pwhash_opslimit_interactive
+getOpLimit Moderate      = prim__crypto_pwhash_opslimit_moderate
+getOpLimit Sensitive     = prim__crypto_pwhash_opslimit_sensitive
+getOpLimit Maximum       = prim__crypto_pwhash_opslimit_max
+getOpLimit (Immediate n) = n
 
 getMemLimit : HashLimit -> Bits64
-getMemLimit Minimum     = prim__crypto_pwhash_memlimit_min
-getMemLimit Interactive = prim__crypto_pwhash_memlimit_interactive
-getMemLimit Moderate    = prim__crypto_pwhash_memlimit_moderate
-getMemLimit Sensitive   = prim__crypto_pwhash_memlimit_sensitive
-getMemLimit Maximum     = prim__crypto_pwhash_memlimit_max
+getMemLimit Minimum       = prim__crypto_pwhash_memlimit_min
+getMemLimit Interactive   = prim__crypto_pwhash_memlimit_interactive
+getMemLimit Moderate      = prim__crypto_pwhash_memlimit_moderate
+getMemLimit Sensitive     = prim__crypto_pwhash_memlimit_sensitive
+getMemLimit Maximum       = prim__crypto_pwhash_memlimit_max
+getMemLimit (Immediate n) = n
 
 -- Medium Level, Immediate Password Hashing --
 
