@@ -242,3 +242,11 @@ export
 verifyPassword : String -> String -> Bool
 verifyPassword hash passwd =
   cBool $ prim__crypto_pwhash_str_verify hash passwd (cast $ length passwd)
+
+||| Determines whether or not the given password hash requires rehashing.
+export
+passwordNeedsRehash : String -> HashLimit -> HashLimit -> Bool
+passwordNeedsRehash hash ops mem = 
+  let ol = getOpLimit  ops
+      ml = getMemLimit mem
+  in cBool $ prim__crypto_pwhash_str_needs_rehash hash ops mem

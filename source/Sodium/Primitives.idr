@@ -257,5 +257,5 @@ prim__crypto_pwhash_str_verify : String -> String -> Bits64 -> Int
 
 %foreign (libsodium "crypto_pwhash_str_needs_rehash")
 export
-prim__crypto_pwhash_str_needs_rehash : AnyPtr -> Bits64 -> Bits64 -> PrimIO Int
+prim__crypto_pwhash_str_needs_rehash : String -> Bits64 -> Bits64 -> PrimIO Int
 
