@@ -71,9 +71,9 @@ data ProtectionMode = NoAccess | ReadOnly | ReadWrite
 ||| Sets the memory protection for the given memory region.
 export
 setMemoryProtection : HasIO io => ProtectionMode -> AnyPtr -> io Bool
-setMemoryProtection NoAccess  ptr = cIOBool $ primIO $ prim__memoryNoAccess ptr
-setMemoryProtection ReadOnly  ptr = cIOBool $ primIO $ prim__memoryReadOnly ptr
-setMemoryProtection ReadWrite ptr = cIOBool $ primIO $ prim__memoryReadWrite ptr
+setMemoryProtection NoAccess  ptr = cBoolIO $ primIO $ prim__memoryNoAccess ptr
+setMemoryProtection ReadOnly  ptr = cBoolIO $ primIO $ prim__memoryReadOnly ptr
+setMemoryProtection ReadWrite ptr = cBoolIO $ primIO $ prim__memoryReadWrite ptr
 
 ||| Sets the given memory region to no access protections.
 export

@@ -8,6 +8,8 @@ import Sodium.Memory
 
 -- Password Hashing Data Types --
 
+||| The options for the different configurable limits of Sodium's
+||| hashing routines.
 public export
 data HashLimit
   = Minimum
@@ -17,6 +19,7 @@ data HashLimit
   | Maximum
   | Immediate Bits64
 
+||| The available hashing algorithms.
 public export
 data HashAlgorithm = Argon2I13 | Argon2ID13 | Default
 
@@ -28,6 +31,8 @@ getHashAlgorithm Default    = prim__crypto_pwhash_alg_default
 defaultHashPrefix : String
 defaultHashPrefix = prim__crypto_pwhash_strprefix
 
+||| The length of a salt for Sodium's password hashing and key derivation
+||| routines.
 export
 saltLength : Bits64
 saltLength = prim__crypto_pwhash_saltbytes
@@ -50,13 +55,14 @@ getMemLimit (Immediate n) = n
 
 -- Medium Level, Immediate Password Hashing --
 
+||| Lower level abstraction that exposes the raw key derivation routine.
 export
-hashPasswordImmediate : HasIO io =>
+derivePassKeyImmediate : HasIO io =>
                         AnyPtr -> Bits64 ->
                         String ->
                         AnyPtr ->
                         HashLimit -> HashLimit -> HashAlgorithm -> io Int
-hashPasswordImmediate out outLen passwd salt ops mem alg = 
+derivePassKeyImmediate out outLen passwd salt ops mem alg = 
   let opsLimit = getOpLimit ops
       memLimit = getMemLimit mem
       algID    = getHashAlgorithm alg
@@ -67,21 +73,25 @@ hashPasswordImmediate out outLen passwd salt ops mem alg =
                                  opsLimit memLimit algID
                         
 
--- High Level, SecureBuffer Based Password Hashing --
+-- High Level, SecureBuffer Based Password Key Derivation --
 
+||| The PassKey record. Contains the key itself as well as the hash, stringPrefix,
+||| algorithm, opLimit, and memLimit of the derivation.
 public export
-record PasswordHash where
-  constructor MkPasswordHash
-  hash         : SecureBuffer
+record PassKey where
+  constructor MkPassKey
+  key          : SecureBuffer
   salt         : SecureBuffer
   stringPrefix : String
   algorithm    : HashAlgorithm
   opLimit      : HashLimit
   memLimit     : HashLimit
 
+||| Displays a PassKey in a string representation that can be parsed back
+||| into a PassKey later.
 export
-Show PasswordHash where
-  show pwHash = let h = contentAsHex $ hash pwHash
+Show PassKey where
+  show pwHash = let h = contentAsHex $ key pwHash
                     s = contentAsHex $ salt pwHash
                     p = stringPrefix pwHash
                     a = show $ getHashAlgorithm $ algorithm pwHash
@@ -89,58 +99,146 @@ Show PasswordHash where
                     m = show $ getMemLimit $ memLimit pwHash
                 in p ++ s ++ "$" ++ h ++ "$" ++ a ++ "$" ++ o ++ "$" ++ m
 
+private
 newSalt : HasIO io => io SecureBuffer
 newSalt = do
   buffer <- newSecureBuffer saltLength
   randomizeBuffer buffer
   liftIO $ pure $ buffer
 
+||| Derives a PassKey from the given settings and password string.
+||| A PassKey is a record that contains the raw key (stored within
+||| a secure buffer), as well as the salt and all configuration settings
+||| used to derive the key.
+|||
+||| @ HashLimit     The operation limit of the derivation.
+||| @ HashLimit     The memory limit of the derivation.
+||| @ HashAlgorithm The algorithm to derive the key with.
+||| @ Bits64        The size of the final key.
+||| @ String        The password to derive the key from.
 export
-hashPassword : HasIO io =>
-               HashLimit -> HashLimit -> HashAlgorithm -> Bits64 -> String ->
-               io (Maybe PasswordHash)
-hashPassword ops mem algo keySize passwd = do 
+deriveKey : HasIO io =>
+            HashLimit -> HashLimit -> HashAlgorithm -> Bits64 -> String ->
+            io (Maybe PassKey)
+deriveKey ops mem algo keySize passwd = do 
   out     <- newSecureBuffer keySize
   salt    <- newSalt
-  outcome <- hashPasswordImmediate (rawPointer out) (length out)
-                                   passwd (rawPointer salt)
-                                   ops mem algo
+  outcome <- derivePassKeyImmediate (rawPointer out) (length out)
+                                    passwd (rawPointer salt)
+                                    ops mem algo
   liftIO $ pure (if outcome == 0
-                 then Just (MkPasswordHash out salt defaultHashPrefix algo ops mem)
+                 then Just (MkPassKey out salt defaultHashPrefix algo ops mem)
                  else Nothing)
 
+||| Derives a PassKey according to Interactive limit settings.
+|||
+||| @ HashAlgorithm The algorithm to derive the key with.
+||| @ Bits64        The size of the final key.
+||| @ String        The password to derive the key from.
 export
-hashPasswordInteractive : HasIO io => HashAlgorithm -> Bits64 -> String ->
-                          io (Maybe PasswordHash)
-hashPasswordInteractive = hashPassword Interactive Interactive
+deriveKeyInteractive : HasIO io => HashAlgorithm -> Bits64 -> String ->
+                       io (Maybe PassKey)
+deriveKeyInteractive = deriveKey Interactive Interactive
 
+||| Derives a PassKey according to Moderate limit settings.
+|||
+||| @ HashAlgorithm The algorithm to derive the key with.
+||| @ Bits64        The size of the final key.
+||| @ String        The password to derive the key from.
 export
-hashPasswordModerate : HasIO io => HashAlgorithm -> Bits64 -> String ->
-                          io (Maybe PasswordHash)
-hashPasswordModerate = hashPassword Moderate Moderate
+deriveKeyModerate : HasIO io => HashAlgorithm -> Bits64 -> String ->
+                    io (Maybe PassKey)
+deriveKeyModerate = deriveKey Moderate Moderate
 
+||| Derives a PassKey according to Sensitive limit settings.
+|||
+||| @ HashAlgorithm The algorithm to derive the key with.
+||| @ Bits64        The size of the final key.
+||| @ String        The password to derive the key from.
 export
-hashPasswordSensitive : HasIO io => HashAlgorithm -> Bits64 -> String ->
-                          io (Maybe PasswordHash)
-hashPasswordSensitive = hashPassword Sensitive Sensitive
+deriveKeySensitive : HasIO io => HashAlgorithm -> Bits64 -> String ->
+                     io (Maybe PassKey)
+deriveKeySensitive = deriveKey Sensitive Sensitive
 
+||| Marks the given PassKey as no access.
 export
-noAccessPasswordHash : HasIO io => PasswordHash -> io Bool
-noAccessPasswordHash pwHash = do
-  o1 <- noAccessBuffer (hash pwHash)
+noAccessKey : HasIO io => PassKey -> io Bool
+noAccessKey pwHash = do
+  o1 <- noAccessBuffer (key pwHash)
   o2 <- noAccessBuffer (salt pwHash)
   liftIO $ pure $ o1 && o2
 
+||| Marks the given PassKey as Read only.
 export
-readOnlyPasswordHash : HasIO io => PasswordHash -> io Bool
-readOnlyPasswordHash pwHash = do
-  o1 <- readOnlyBuffer (hash pwHash)
+readOnlyKey : HasIO io => PassKey -> io Bool
+readOnlyKey pwHash = do
+  o1 <- readOnlyBuffer (key pwHash)
   o2 <- readOnlyBuffer (salt pwHash)
   liftIO $ pure $ o1 && o2
 
+||| Marks the given PassKey as Read/Write.
 export
-readWritePasswordHash : HasIO io => PasswordHash -> io Bool
-readWritePasswordHash pwHash = do
-  o1 <- readWriteBuffer (hash pwHash)
+readWriteKey : HasIO io => PassKey -> io Bool
+readWriteKey pwHash = do
+  o1 <- readWriteBuffer (key pwHash)
   o2 <- readWriteBuffer (salt pwHash)
   liftIO $ pure $ o1 && o2
+
+-- High Level, Password Hashing --
+
+||| Hashes the given password alongside the given strength limits.
+|||
+||| TODO: Contemplate if this should be moved into the shim. If it is,
+|||       one could argue to forego the IO component. While side effects
+|||       technically take place within the function, they are restricted
+|||       to the function and shouldn't affect the world overall. This is
+|||       especially true if moved to the shim, as the strBuf could then be
+|||       stack allocated.
+|||
+||| @ HashLimit The operation limit of the hashing.
+||| @ HashLimit The memory limit of the hashing.
+||| @ String    The password to hash.
+export
+hashPassword : HasIO io => HashLimit -> HashLimit -> String -> io (Maybe String)
+hashPassword ops mem passwd =
+  let ol = getOpLimit  ops
+      ml = getMemLimit mem
+      sl = length passwd
+  in do
+    strBuf <- allocateMemory prim__crypto_pwhash_strbytes
+    res    <- primIO $ prim__crypto_pwhash_str strBuf passwd (cast sl) ol ml
+    liftIO $ case cBool res of
+      True  => let str = prim__stringify strBuf
+               in do
+                 freeMemory strBuf
+                 pure $ Just str
+      False => do freeMemory strBuf
+                  pure Nothing
+
+||| Hashes a password with Interactive limit settings.
+export
+hashPasswordInteractive : HasIO io => String -> io (Maybe String)
+hashPasswordInteractive = hashPassword Interactive Interactive
+
+||| Hashes a password with Moderate limit settings.
+export
+hashPasswordModerate : HasIO io => String -> io (Maybe String)
+hashPasswordModerate = hashPassword Moderate Moderate
+
+||| Hashes a password with Sensitive limit settings.
+export
+hashPasswordSensitive : HasIO io => String -> io (Maybe String)
+hashPasswordSensitive = hashPassword Sensitive Sensitive
+
+||| Verifies that the given password matches the provided password hash.
+|||
+||| TODO: Determine if this needs IO. The world does not necessarily change
+|||       when the primitive is called, but it does a lot of side effects
+|||       behind the scenes. Something worth a debate.
+|||
+||| @ String The password hash to validate with.
+||| @ String The password to validate.
+export
+verifyPassword : String -> String -> Bool
+verifyPassword hash passwd =
+  cBool $ prim__crypto_pwhash_str_verify hash passwd (cast $ length passwd)

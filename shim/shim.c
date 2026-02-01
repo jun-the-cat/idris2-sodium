@@ -45,6 +45,16 @@ shim_unwrap_gc(void * const pointer)
 }
 
 /**
+ * Forcibly converts a pointer to a string, which will then be copied into the
+ * Idris runtime. Therefore, if this pointer is not GC'd it MUST BE FREED MANUALLY.
+ */
+char *
+shim_stringify(void * const pointer) 
+{
+  return (char *) pointer;
+}
+
+/**
  * Peek into the given pointer, returning the relevant byte.
  */
 uint8_t

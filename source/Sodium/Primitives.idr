@@ -25,8 +25,8 @@ cBool  0 = True
 cBool  _ = False
 
 export
-cIOBool : HasIO io => io Int -> io Bool
-cIOBool io = map cBool io
+cBoolIO : HasIO io => io Int -> io Bool
+cBoolIO io = map cBool io
 
 
 -- Encoding Bindings
@@ -135,6 +135,10 @@ prim__peek : AnyPtr -> Bits64 -> Bits64 -> Bits8
 export
 prim__poke : AnyPtr -> Bits64 -> Bits8 -> Bits64 -> PrimIO Bits8
 
+%foreign (libshim "shim_stringify")
+export
+prim__stringify : AnyPtr -> String
+
 -- Pointer conversion, because the crash course *lies*!
 
 public export
@@ -241,3 +245,17 @@ prim__crypto_pwhash_memlimit_moderate : Bits64
 %foreign (libsodium "crypto_pwhash_memlimit_sensitive")
 export
 prim__crypto_pwhash_memlimit_sensitive : Bits64
+
+%foreign (libsodium "crypto_pwhash_str")
+export
+prim__crypto_pwhash_str : AnyPtr -> String -> Bits64 ->
+                          Bits64 -> Bits64 -> PrimIO Int
+
+%foreign (libsodium "crypto_pwhash_str_verify")
+export
+prim__crypto_pwhash_str_verify : String -> String -> Bits64 -> Int
+
+%foreign (libsodium "crypto_pwhash_str_needs_rehash")
+export
+prim__crypto_pwhash_str_needs_rehash : AnyPtr -> Bits64 -> Bits64 -> PrimIO Int
+
