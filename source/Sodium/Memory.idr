@@ -101,3 +101,54 @@ padMemory ptr len bs max = primIO $ prim__padBuffer ptr len bs max
 export
 unpadMemory : HasIO io => AnyPtr -> Bits64 -> Bits64 -> io Bits64
 unpadMemory ptr len bs = primIO $ prim__unpadBuffer ptr len bs
+
+-- Interface to allow easy mprotect permission changes --
+
+||| Standard way to adjust the protection of a data type.
+public export
+interface Protected a where
+  ||| Marks the given object as NoAccess.
+  noAccess       : HasIO io => a -> io Bool
+  ||| Marks the given object as ReadOnly.
+  readOnly       : HasIO io => a -> io Bool
+  ||| Marks the given object as ReadWrite.
+  readWrite      : HasIO io => a -> io Bool
+  
+  ||| For the scope of `f`, the object will be in the protection mode
+  ||| specified by `pf`.
+  withProtection : HasIO io => (a -> io Bool) -> a -> (a -> b) -> io (Maybe b)
+  withProtection pf a1 f = do
+    success <- pf a1
+    liftIO $ case success of
+      False => pure Nothing
+      True  =>
+        let result = f a1
+        in do
+          success <- noAccess a1
+          pure $ case success of
+            False => Nothing
+            True  => Just result
+  
+  ||| Marks the object as NoAccess for the scope of `f`.
+  withNoAccess   : HasIO io => a -> (a -> b) -> io (Maybe b)
+  withNoAccess  = withProtection noAccess
+  
+  ||| Marks the object as ReadOnly for the scope of `f`.
+  withReadOnly   : HasIO io => a -> (a -> b) -> io (Maybe b)
+  withReadOnly  = withProtection readOnly
+  
+  ||| Marks the object as ReadWrite for the scope of `f`.
+  withReadWrite  : HasIO io => a -> (a -> b) -> io (Maybe b)
+  withReadWrite = withProtection readWrite
+
+export
+Protected AnyPtr where
+  noAccess  = noAccessMemory
+  readOnly  = readOnlyMemory
+  readWrite = readWriteMemory
+
+export  
+Protected GCAnyPtr where
+  noAccess  = noAccessMemory . cast
+  readOnly  = readOnlyMemory . cast
+  readWrite = readWriteMemory . cast

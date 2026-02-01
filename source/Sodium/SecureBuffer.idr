@@ -58,17 +58,23 @@ poke (MkSecureBuffer ptr size) index value =
 ||| Marks the secure buffer for no access, revoking all permissions.
 export
 noAccessBuffer : HasIO io => SecureBuffer -> io Bool
-noAccessBuffer (MkSecureBuffer ptr _) = withAnyPtr ptr noAccessMemory
+noAccessBuffer (MkSecureBuffer ptr _) = noAccess ptr
 
 ||| Marks the secure buffer as read only, disallowing writes.
 export
 readOnlyBuffer : HasIO io => SecureBuffer -> io Bool
-readOnlyBuffer (MkSecureBuffer ptr _) = withAnyPtr ptr readOnlyMemory
+readOnlyBuffer (MkSecureBuffer ptr _) = readOnly ptr
 
 ||| Enables read and write permissions on the secure buffer.
 export
 readWriteBuffer : HasIO io => SecureBuffer -> io Bool
-readWriteBuffer (MkSecureBuffer ptr _) = withAnyPtr ptr readWriteMemory
+readWriteBuffer (MkSecureBuffer ptr _) = readWrite ptr
+
+export
+Protected SecureBuffer where
+  noAccess  = noAccessBuffer
+  readOnly  = readOnlyBuffer
+  readWrite = readWriteBuffer
 
 ||| Zeroes the given secure buffer. Requires Read/Write privileges.
 export

@@ -184,6 +184,12 @@ readWriteKey pwHash = do
   o2 <- readWriteBuffer (salt pwHash)
   liftIO $ pure $ o1 && o2
 
+export
+Protected PassKey where
+  noAccess  = noAccessKey
+  readOnly  = readOnlyKey
+  readWrite = readWriteKey
+
 -- High Level, Password Hashing --
 
 ||| Hashes the given password alongside the given strength limits.
@@ -249,4 +255,4 @@ passwordNeedsRehash : String -> HashLimit -> HashLimit -> Bool
 passwordNeedsRehash hash ops mem = 
   let ol = getOpLimit  ops
       ml = getMemLimit mem
-  in cBool $ prim__crypto_pwhash_str_needs_rehash hash ops mem
+  in cBool $ prim__crypto_pwhash_str_needs_rehash hash ol ml
