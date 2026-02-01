@@ -70,24 +70,24 @@ data ProtectionMode = NoAccess | ReadOnly | ReadWrite
 
 ||| Sets the memory protection for the given memory region.
 export
-setMemoryProtection : HasIO io => ProtectionMode -> AnyPtr -> io Int
-setMemoryProtection NoAccess  ptr = primIO $ prim__memoryNoAccess ptr
-setMemoryProtection ReadOnly  ptr = primIO $ prim__memoryReadOnly ptr
-setMemoryProtection ReadWrite ptr = primIO $ prim__memoryReadWrite ptr
+setMemoryProtection : HasIO io => ProtectionMode -> AnyPtr -> io Bool
+setMemoryProtection NoAccess  ptr = cIOBool $ primIO $ prim__memoryNoAccess ptr
+setMemoryProtection ReadOnly  ptr = cIOBool $ primIO $ prim__memoryReadOnly ptr
+setMemoryProtection ReadWrite ptr = cIOBool $ primIO $ prim__memoryReadWrite ptr
 
 ||| Sets the given memory region to no access protections.
 export
-noAccessMemory : HasIO io => AnyPtr -> io Int
+noAccessMemory : HasIO io => AnyPtr -> io Bool
 noAccessMemory = setMemoryProtection NoAccess
 
 ||| Sets the given memory region to read only protections.
 export
-readOnlyMemory : HasIO io => AnyPtr -> io Int
+readOnlyMemory : HasIO io => AnyPtr -> io Bool
 readOnlyMemory = setMemoryProtection ReadOnly
 
 ||| Removes any memory protections from the given memory region.
 export
-readWriteMemory : HasIO io => AnyPtr -> io Int
+readWriteMemory : HasIO io => AnyPtr -> io Bool
 readWriteMemory = setMemoryProtection ReadWrite
 
 -- Memory Padding and Unpadding Routines --

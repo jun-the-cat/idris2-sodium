@@ -3,6 +3,7 @@ module Sodium
 import Sodium.Primitives
 
 import Sodium.Memory
+import Sodium.PasswordHash
 
 -- Initialization Routines --
 
@@ -15,3 +16,4 @@ initSodium = do
   pure $ case outcome of
     -1 => False
     _  => True
+

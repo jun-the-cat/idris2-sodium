@@ -17,6 +17,18 @@ libsodium fn = "C:" ++ fn ++ ",libsodium,sodium.h"
 export
 prim__initSodium : PrimIO Int
 
+-- Utility Functions
+
+export
+cBool : Int -> Bool
+cBool  0 = True
+cBool  _ = False
+
+export
+cIOBool : HasIO io => io Int -> io Bool
+cIOBool io = map cBool io
+
+
 -- Encoding Bindings
 
 ||| Encodes the provided byte array as a hex string, in the provided string.
@@ -123,7 +135,7 @@ prim__peek : AnyPtr -> Bits64 -> Bits64 -> Bits8
 export
 prim__poke : AnyPtr -> Bits64 -> Bits8 -> Bits64 -> PrimIO Bits8
 
--- Pointer conversion.
+-- Pointer conversion, because the crash course *lies*!
 
 public export
 Cast GCAnyPtr AnyPtr where
@@ -132,3 +144,100 @@ Cast GCAnyPtr AnyPtr where
 public export
 Cast (GCPtr t) (Ptr t) where
   cast f = prim__unwrapPtr f
+
+export
+withAnyPtr : GCAnyPtr -> (AnyPtr -> t) -> t
+withAnyPtr gcap f = f (cast gcap)
+
+export
+withPtr : GCPtr t -> (Ptr t -> a) -> a
+withPtr gcp f = f (cast gcp)
+
+-- Password Hashing Bindings --
+
+%foreign (libsodium "crypto_pwhash")
+export
+prim__hashPassword : AnyPtr -> Bits64 ->
+                     String -> Bits64 ->
+                     AnyPtr -> Bits64 ->
+                     Bits64 -> Int    -> PrimIO Int
+
+%foreign (libsodium "crypto_pwhash_alg_argon2i13")
+export
+prim__crypto_pwhash_alg_argon2i13 : Int
+
+%foreign (libsodium "crypto_pwhash_alg_argon2id13")
+export
+prim__crypto_pwhash_alg_argon2id13 : Int
+
+%foreign (libsodium "crypto_pwhash_alg_default")
+export
+prim__crypto_pwhash_alg_default : Int
+
+%foreign (libsodium "crypto_pwhash_bytes_min")
+export
+prim__crypto_pwhash_bytes_min : Bits64
+
+%foreign (libsodium "crypto_pwhash_bytes_max")
+export
+prim__crypto_pwhash_bytes_max : Bits64
+
+%foreign (libsodium "crypto_pwhash_passwd_min")
+export
+prim__crypto_pwhash_passwd_min : Bits64
+
+%foreign (libsodium "crypto_pwhash_passwd_max")
+export
+prim__crypto_pwhash_passwd_max : Bits64
+
+%foreign (libsodium "crypto_pwhash_saltbytes")
+export
+prim__crypto_pwhash_saltbytes : Bits64
+
+%foreign (libsodium "crypto_pwhash_strbytes")
+export
+prim__crypto_pwhash_strbytes : Bits64
+
+%foreign (libsodium "crypto_pwhash_strprefix")
+export
+prim__crypto_pwhash_strprefix : String
+
+%foreign (libsodium "crypto_pwhash_opslimit_min")
+export
+prim__crypto_pwhash_opslimit_min : Bits64
+
+%foreign (libsodium "crypto_pwhash_opslimit_max")
+export
+prim__crypto_pwhash_opslimit_max : Bits64
+
+%foreign (libsodium "crypto_pwhash_opslimit_interactive")
+export
+prim__crypto_pwhash_opslimit_interactive : Bits64
+
+%foreign (libsodium "crypto_pwhash_opslimit_moderate")
+export
+prim__crypto_pwhash_opslimit_moderate : Bits64
+
+%foreign (libsodium "crypto_pwhash_opslimit_sensitive")
+export
+prim__crypto_pwhash_opslimit_sensitive : Bits64
+
+%foreign (libsodium "crypto_pwhash_memlimit_min")
+export
+prim__crypto_pwhash_memlimit_min : Bits64
+
+%foreign (libsodium "crypto_pwhash_memlimit_max")
+export
+prim__crypto_pwhash_memlimit_max : Bits64
+
+%foreign (libsodium "crypto_pwhash_memlimit_interactive")
+export
+prim__crypto_pwhash_memlimit_interactive : Bits64
+
+%foreign (libsodium "crypto_pwhash_memlimit_moderate")
+export
+prim__crypto_pwhash_memlimit_moderate : Bits64
+
+%foreign (libsodium "crypto_pwhash_memlimit_sensitive")
+export
+prim__crypto_pwhash_memlimit_sensitive : Bits64

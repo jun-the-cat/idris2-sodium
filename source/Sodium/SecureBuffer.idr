@@ -17,6 +17,12 @@ record SecureBuffer where
   pointer : GCAnyPtr
   length  : Bits64
 
+||| Gets the buffer's underlying pointer as an AnyPtr, for interop with foreign
+||| calls.
+export
+rawPointer : SecureBuffer -> AnyPtr
+rawPointer buffer = cast $ pointer buffer
+
 ||| Constructs a new secure buffer with the given size.
 ||| The memory region is locked and marked as no access.
 |||
@@ -51,21 +57,18 @@ poke (MkSecureBuffer ptr size) index value =
 
 ||| Marks the secure buffer for no access, revoking all permissions.
 export
-noAccessBuffer : HasIO io => SecureBuffer -> io Int
-noAccessBuffer (MkSecureBuffer ptr _) = let raw = cast ptr
-                                        in noAccessMemory raw
+noAccessBuffer : HasIO io => SecureBuffer -> io Bool
+noAccessBuffer (MkSecureBuffer ptr _) = withAnyPtr ptr noAccessMemory
 
 ||| Marks the secure buffer as read only, disallowing writes.
 export
-readOnlyBuffer : HasIO io => SecureBuffer -> io Int
-readOnlyBuffer (MkSecureBuffer ptr _) = let raw = cast ptr
-                                        in readOnlyMemory raw
+readOnlyBuffer : HasIO io => SecureBuffer -> io Bool
+readOnlyBuffer (MkSecureBuffer ptr _) = withAnyPtr ptr readOnlyMemory
 
 ||| Enables read and write permissions on the secure buffer.
 export
-readWriteBuffer : HasIO io => SecureBuffer -> io Int
-readWriteBuffer (MkSecureBuffer ptr _) = let raw = cast ptr
-                                         in readWriteMemory raw
+readWriteBuffer : HasIO io => SecureBuffer -> io Bool
+readWriteBuffer (MkSecureBuffer ptr _) = withAnyPtr ptr readWriteMemory
 
 ||| Zeroes the given secure buffer. Requires Read/Write privileges.
 export
@@ -126,6 +129,10 @@ bufferToString buffer i lst =
   in bufferToString buffer
                     (assert_smaller i $ i - 1) 
                     (byteToHex val :: lst)
+
+export
+contentAsHex : SecureBuffer -> String
+contentAsHex buffer = bufferToString buffer (length buffer - 1) []
 
 export
 Show SecureBuffer where
