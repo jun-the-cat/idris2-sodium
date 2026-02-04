@@ -259,3 +259,20 @@ prim__crypto_pwhash_str_verify : String -> String -> Bits64 -> Int
 export
 prim__crypto_pwhash_str_needs_rehash : String -> Bits64 -> Bits64 -> Int
 
+-- Secret Box Bindings --
+
+%foreign (libsodium "crypto_secretbox_keybytes")
+export
+prim__crypto_secretbox_keybytes : Bits64
+
+%foreign (libsodium "crypto_secretbox_noncebytes")
+export
+prim__crypto_secretbox_noncebytes : Bits64
+
+%foreign (libsodium "crypto_secretbox_macbytes")
+export
+prim__crypto_secretbox_macbytes : Bits64
+
+%foreign (libsodium "crypto_secretbox_messagebytes_max")
+export
+prim__crypto_secretbox_messagebytes_max : Bits64

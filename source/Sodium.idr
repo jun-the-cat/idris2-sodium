@@ -17,3 +17,15 @@ initSodium = do
   pure $ case outcome of
     -1 => False
     _  => True
+
+test : IO ()
+test = do
+  putStr "Password: "
+  _    <- initSodium
+  line <- getLine
+  pass <- deriveKeyModerate Default 64 line
+  case pass of
+    Nothing => putStrLn "Could not derive key from password."
+    Just pass => do
+      pass <- readOnly pass
+      putStrLn . show $ pass

@@ -9,6 +9,8 @@ version     = 0.0.0
 
 -- Build Information
 sourcedir   = "source"
-modules     = Sodium
-depends     = contrib
+modules     = Sodium,
+              Sodium.SecureBuffer,
+              Sodium.PasswordHash,
+              Sodium.SecretBox
 opts        = "--wp"
