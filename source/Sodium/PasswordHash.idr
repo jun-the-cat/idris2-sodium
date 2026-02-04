@@ -170,13 +170,26 @@ deriveKeySensitive : HasIO io => HashAlgorithm -> Bits64 -> String ->
                      io (Maybe (PassKey NoAccess))
 deriveKeySensitive = deriveKey Sensitive Sensitive
 
-{-TODO: Redo this: 
+private
+changeAccess : HasIO io =>
+               (SecureBuffer m1 -> io (Maybe (SecureBuffer m2))) ->
+               PassKey m1 -> io (Maybe (PassKey m2))
+changeAccess accessFn (MkPassKey k s sp a ol ml) = do
+    mK <- accessFn k
+    mS <- accessFn s
+    pure $ case mK of
+      Nothing  => Nothing
+      Just key =>
+        case mS of
+          Nothing   => Nothing
+          Just salt =>
+            Just $ MkPassKey key salt sp a ol ml
+
 export
 Protected PassKey where
-  noAccess  = noAccessKey
-  readOnly  = readOnlyKey
-  readWrite = readWriteKey
--}
+  noAccess  = changeAccess noAccess
+  readOnly  = changeAccess readOnly
+  readWrite = changeAccess readWrite
 
 -- High Level, Password Hashing --
 
