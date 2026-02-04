@@ -32,6 +32,7 @@ newSecureBuffer : HasIO io => Bits64 -> io SecureBuffer
 newSecureBuffer size = do
   ptr <- allocateTrackedMemory size
   _   <- lockMemory (cast ptr) size
+  _   <- noAccess ptr
   liftIO $ pure $ MkSecureBuffer ptr size
 
 ||| Peeks into the secure buffer, returning the byte at the given index.
@@ -76,17 +77,17 @@ Protected SecureBuffer where
   readOnly  = readOnlyBuffer
   readWrite = readWriteBuffer
 
-||| Zeroes the given secure buffer. Requires Read/Write privileges.
+||| Zeroes the given secure buffer.
 export
-zeroBuffer : HasIO io => SecureBuffer -> io ()
-zeroBuffer (MkSecureBuffer ptr size) = let raw = cast ptr
-                                       in zeroMemory raw size
+zeroBuffer : HasIO io => SecureBuffer -> io (Maybe Bits64)
+zeroBuffer (MkSecureBuffer ptr size) = 
+  withReadWriteIO { io = io } (cast ptr) $ zeroMemory size
 
 ||| Fills a buffer with random bytes.
 export
-randomizeBuffer : HasIO io => SecureBuffer -> io ()
-randomizeBuffer (MkSecureBuffer ptr size) = let raw = cast ptr
-                                            in randomMemory raw size
+randomizeBuffer : HasIO io => SecureBuffer -> io (Maybe Bits64)
+randomizeBuffer (MkSecureBuffer ptr size) = 
+  withReadWriteIO { io = io } (cast ptr) $ randomMemory size
 
 ||| Pads the data present in the secure buffer.
 |||
@@ -94,10 +95,11 @@ randomizeBuffer (MkSecureBuffer ptr size) = let raw = cast ptr
 ||| @ Bits64       The length of the data region inside the buffer.
 ||| @ Bits64       The block size to pad to.
 export
-padBuffer : HasIO io => SecureBuffer -> Bits64 -> Bits64 -> io Bits64
+padBuffer : HasIO io => SecureBuffer -> Bits64 -> Bits64 -> io (Maybe Bits64)
 padBuffer (MkSecureBuffer ptr size) len blockSize =
-  let rawPtr = cast ptr
-  in padMemory rawPtr len blockSize size
+  withReadWriteIO { io = io }
+                  (cast ptr)
+                  (\ptr => padMemory ptr len blockSize size)
 
 ||| Unpads the data present inside the secure buffer.
 |||
@@ -105,10 +107,11 @@ padBuffer (MkSecureBuffer ptr size) len blockSize =
 ||| @ Bits64       The length of the data region inside the buffer.
 ||| @ Bits64       The block size of the padded data.
 export
-unpadBuffer : HasIO io => SecureBuffer -> Bits64 -> Bits64 -> io Bits64
+unpadBuffer : HasIO io => SecureBuffer -> Bits64 -> Bits64 -> io (Maybe Bits64)
 unpadBuffer (MkSecureBuffer ptr _) len blockSize = 
-  let rawPtr = cast ptr
-  in unpadMemory rawPtr len blockSize
+  withReadWriteIO { io = io }
+                  (cast ptr)
+                  (\ptr => unpadMemory ptr len blockSize)
 
 -- Higher Order Abstractions --
 -------------------------------
@@ -126,7 +129,7 @@ byteToHex byte = let hi     = shiftR byte 4
                  in hiChar ++ loChar
 
 private
-bufferToString : (sb : SecureBuffer) -> Bits64 -> List String -> String
+bufferToString : SecureBuffer -> Bits64 -> List String -> String
 bufferToString buffer 0 lst =
   let val = peek buffer 0
   in concat $ (byteToHex val :: lst)
@@ -137,8 +140,8 @@ bufferToString buffer i lst =
                     (byteToHex val :: lst)
 
 export
-contentAsHex : SecureBuffer -> String
-contentAsHex buffer = bufferToString buffer (length buffer - 1) []
+bufferAsHex : SecureBuffer -> String
+bufferAsHex buffer = bufferToString buffer (length buffer - 1) []
 
 export
 Show SecureBuffer where

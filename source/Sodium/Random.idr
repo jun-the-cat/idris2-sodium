@@ -14,8 +14,10 @@ randomUniformInteger upperBound = primIO $ prim__uniformInteger upperBound
 
 ||| Fills the given memory region with random bytes, up to the given size.
 export
-randomMemory : HasIO io => AnyPtr -> Bits64 -> io ()
-randomMemory ptr size = primIO $ prim__randomBuffer ptr size
+randomMemory : HasIO io => Bits64 -> AnyPtr -> io Bits64
+randomMemory size ptr = do
+  primIO $ prim__randomBuffer ptr size
+  pure size
 
 ||| Like randomBuffer, but allows a static seed. Usually only for testing.
 export

@@ -43,8 +43,10 @@ compareMemory ptr1 ptr2 size =
 
 ||| Zeroes the memory region provided by the memory address and size.
 export
-zeroMemory : HasIO io => AnyPtr -> Bits64 -> io ()
-zeroMemory ptr size = primIO $ prim__zeroMemory ptr size
+zeroMemory : HasIO io => Bits64 -> AnyPtr -> io Bits64
+zeroMemory size ptr = do
+  _ <- primIO $ prim__zeroMemory ptr size
+  liftIO . pure $ size
 
 -- Memory Locking and Unlocking --
 
@@ -129,17 +131,38 @@ interface Protected a where
             False => Nothing
             True  => Just result
   
+  withProtectionIO : HasIO io => (a -> io Bool) -> a -> (a -> io b) -> io (Maybe b)
+  withProtectionIO pf a1 f = do
+    success <- pf a1
+    case success of
+      False => pure Nothing
+      True  => do
+        result  <- f a1
+        success <- noAccess a1
+        pure $ case success of
+          False => Nothing
+          True  => Just result
+
   ||| Marks the object as NoAccess for the scope of `f`.
   withNoAccess   : HasIO io => a -> (a -> b) -> io (Maybe b)
-  withNoAccess  = withProtection noAccess
+  withNoAccess   = withProtection noAccess
+  
+  withNoAccessIO : HasIO io => a -> (a -> io b) -> io (Maybe b)
+  withNoAccessIO = withProtectionIO noAccess
   
   ||| Marks the object as ReadOnly for the scope of `f`.
   withReadOnly   : HasIO io => a -> (a -> b) -> io (Maybe b)
-  withReadOnly  = withProtection readOnly
+  withReadOnly   = withProtection readOnly
+  
+  withReadOnlyIO : HasIO io => a -> (a -> io b) -> io (Maybe b)
+  withReadOnlyIO = withProtectionIO readOnly
   
   ||| Marks the object as ReadWrite for the scope of `f`.
-  withReadWrite  : HasIO io => a -> (a -> b) -> io (Maybe b)
-  withReadWrite = withProtection readWrite
+  withReadWrite   : HasIO io => a -> (a -> b) -> io (Maybe b)
+  withReadWrite   = withProtection readWrite
+  
+  withReadWriteIO : HasIO io => a -> (a -> io b) -> io (Maybe b)
+  withReadWriteIO = withProtectionIO readWrite
 
 export
 Protected AnyPtr where

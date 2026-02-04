@@ -91,8 +91,8 @@ record PassKey where
 ||| into a PassKey later.
 export
 Show PassKey where
-  show pwHash = let h = contentAsHex $ key pwHash
-                    s = contentAsHex $ salt pwHash
+  show pwHash = let h = bufferAsHex $ key pwHash
+                    s = bufferAsHex $ salt pwHash
                     p = stringPrefix pwHash
                     a = show $ getHashAlgorithm $ algorithm pwHash
                     o = show $ getOpLimit $ opLimit pwHash
@@ -103,7 +103,7 @@ private
 newSalt : HasIO io => io SecureBuffer
 newSalt = do
   buffer <- newSecureBuffer saltLength
-  randomizeBuffer buffer
+  _      <- randomizeBuffer buffer
   liftIO $ pure $ buffer
 
 ||| Derives a PassKey from the given settings and password string.
