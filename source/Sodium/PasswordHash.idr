@@ -6,6 +6,8 @@ import Sodium.Primitives
 import Sodium.SecureBuffer
 import Sodium.Memory
 
+import public Sodium.Protected
+
 -- Password Hashing Data Types --
 
 ||| The options for the different configurable limits of Sodium's
@@ -78,10 +80,10 @@ derivePassKeyImmediate out outLen passwd salt ops mem alg =
 ||| The PassKey record. Contains the key itself as well as the hash, stringPrefix,
 ||| algorithm, opLimit, and memLimit of the derivation.
 public export
-record PassKey where
+record PassKey (mode: ProtectionMode) where
   constructor MkPassKey
-  key          : SecureBuffer
-  salt         : SecureBuffer
+  key          : SecureBuffer mode
+  salt         : SecureBuffer mode
   stringPrefix : String
   algorithm    : HashAlgorithm
   opLimit      : HashLimit
@@ -90,7 +92,7 @@ record PassKey where
 ||| Displays a PassKey in a string representation that can be parsed back
 ||| into a PassKey later.
 export
-Show PassKey where
+CanRead mode => Show (PassKey mode) where
   show pwHash = let h = bufferAsHex $ key pwHash
                     s = bufferAsHex $ salt pwHash
                     p = stringPrefix pwHash
@@ -100,9 +102,9 @@ Show PassKey where
                 in p ++ s ++ "$" ++ h ++ "$" ++ a ++ "$" ++ o ++ "$" ++ m
 
 private
-newSalt : HasIO io => io SecureBuffer
+newSalt : HasIO io => io (SecureBuffer ReadWrite)
 newSalt = do
-  buffer <- newSecureBuffer saltLength
+  buffer <- newSecureBuffer ReadWrite saltLength
   _      <- randomizeBuffer buffer
   liftIO $ pure $ buffer
 
@@ -119,16 +121,24 @@ newSalt = do
 export
 deriveKey : HasIO io =>
             HashLimit -> HashLimit -> HashAlgorithm -> Bits64 -> String ->
-            io (Maybe PassKey)
+            io (Maybe (PassKey NoAccess))
 deriveKey ops mem algo keySize passwd = do 
-  out     <- newSecureBuffer keySize
+  out     <- newSecureBuffer ReadWrite keySize
   salt    <- newSalt
   outcome <- derivePassKeyImmediate (rawPointer out) (length out)
                                     passwd (rawPointer salt)
                                     ops mem algo
-  liftIO $ pure (if outcome == 0
-                 then Just (MkPassKey out salt defaultHashPrefix algo ops mem)
-                 else Nothing)
+  mOut    <- noAccess out
+  mSalt   <- noAccess salt
+  pure $ case mOut of 
+    Nothing  => Nothing
+    Just out =>
+      case mSalt of
+        Nothing   => Nothing
+        Just salt =>
+          (if outcome == 0
+           then Just (MkPassKey out salt defaultHashPrefix algo ops mem)
+           else Nothing)
 
 ||| Derives a PassKey according to Interactive limit settings.
 |||
@@ -137,7 +147,7 @@ deriveKey ops mem algo keySize passwd = do
 ||| @ String        The password to derive the key from.
 export
 deriveKeyInteractive : HasIO io => HashAlgorithm -> Bits64 -> String ->
-                       io (Maybe PassKey)
+                       io (Maybe (PassKey NoAccess))
 deriveKeyInteractive = deriveKey Interactive Interactive
 
 ||| Derives a PassKey according to Moderate limit settings.
@@ -147,7 +157,7 @@ deriveKeyInteractive = deriveKey Interactive Interactive
 ||| @ String        The password to derive the key from.
 export
 deriveKeyModerate : HasIO io => HashAlgorithm -> Bits64 -> String ->
-                    io (Maybe PassKey)
+                    io (Maybe (PassKey NoAccess))
 deriveKeyModerate = deriveKey Moderate Moderate
 
 ||| Derives a PassKey according to Sensitive limit settings.
@@ -157,38 +167,16 @@ deriveKeyModerate = deriveKey Moderate Moderate
 ||| @ String        The password to derive the key from.
 export
 deriveKeySensitive : HasIO io => HashAlgorithm -> Bits64 -> String ->
-                     io (Maybe PassKey)
+                     io (Maybe (PassKey NoAccess))
 deriveKeySensitive = deriveKey Sensitive Sensitive
 
-||| Marks the given PassKey as no access.
-export
-noAccessKey : HasIO io => PassKey -> io Bool
-noAccessKey pwHash = do
-  o1 <- noAccessBuffer (key pwHash)
-  o2 <- noAccessBuffer (salt pwHash)
-  liftIO $ pure $ o1 && o2
-
-||| Marks the given PassKey as Read only.
-export
-readOnlyKey : HasIO io => PassKey -> io Bool
-readOnlyKey pwHash = do
-  o1 <- readOnlyBuffer (key pwHash)
-  o2 <- readOnlyBuffer (salt pwHash)
-  liftIO $ pure $ o1 && o2
-
-||| Marks the given PassKey as Read/Write.
-export
-readWriteKey : HasIO io => PassKey -> io Bool
-readWriteKey pwHash = do
-  o1 <- readWriteBuffer (key pwHash)
-  o2 <- readWriteBuffer (salt pwHash)
-  liftIO $ pure $ o1 && o2
-
+{-TODO: Redo this: 
 export
 Protected PassKey where
   noAccess  = noAccessKey
   readOnly  = readOnlyKey
   readWrite = readWriteKey
+-}
 
 -- High Level, Password Hashing --
 
